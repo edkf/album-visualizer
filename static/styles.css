@@ -1,0 +1,96 @@
+/* CSS Variables for dynamic colors */
+:root {
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --text-color: #ffffff;
+  --text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Normalize CSS */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+#root, #__next {
+  isolation: isolate;
+}
+
+/* Dynamic background and text styles */
+body {
+  background: var(--bg-gradient);
+  color: var(--text-color);
+  text-shadow: var(--text-shadow);
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 0;
+  margin: 0;
+}
+
+/* Image - 90% of viewport height with aspect ratio */
+.cover {
+  height: 80vh;
+  width: auto;
+  object-fit: cover;
+}
+
+/* Smooth transitions for color changes */
+body, * {
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
+.container {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.info {
+  display: none;
+}
+
+/* Fixed progress bar at bottom */
+.progress-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 0;
+}
