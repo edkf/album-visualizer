@@ -7,6 +7,10 @@ from time import time
 
 import requests
 from flask import Flask, jsonify, send_from_directory, request, send_file
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 LASTFM_API_KEY = os.getenv("LASTFM_API_KEY", "")
 LASTFM_ENDPOINT = "https://ws.audioscrobbler.com/2.0/"
@@ -37,35 +41,18 @@ def player_status(player: str) -> str:
 
 def player_metadata(player: str) -> dict:
     # mpris:artUrl sometimes comes empty; we still capture it
-    fmt = "{{title}}|{{artist}}|{{album}}|{{mpris:artUrl}}|{{mpris:length}}"
+    fmt = "{{title}}|{{artist}}|{{album}}|{{mpris:artUrl}}"
     raw = run(f"playerctl -p {shlex.quote(player)} metadata -f '{fmt}'")
     if not raw or "|" not in raw:
         return {}
-    title, artist, album, art, length = (raw.split("|") + ["", "", "", "", ""])[:5]
-    
-    # Get current position
-    position_raw = run(f"playerctl -p {shlex.quote(player)} position")
-    position = 0
-    try:
-        position = float(position_raw) if position_raw else 0
-    except ValueError:
-        position = 0
-    
-    # Convert length from microseconds to seconds
-    length_seconds = 0
-    try:
-        length_seconds = int(length) / 1000000 if length else 0
-    except ValueError:
-        length_seconds = 0
+    title, artist, album, art = (raw.split("|") + ["", "", "", ""])[:4]
     
     return {
         "title": title.strip(),
         "artist": artist.strip(),
         "album": album.strip(),
         "artUrl": art.strip(),
-        "player": player,
-        "position": position,
-        "length": length_seconds
+        "player": player
     }
 
 @lru_cache(maxsize=256)
@@ -148,9 +135,7 @@ def get_now_playing():
                 "artist": artist,
                 "album": meta.get("album") or "",
                 "cover": cover,
-                "source": meta.get("player") or p,
-                "position": meta.get("position", 0),
-                "length": meta.get("length", 0)
+                "source": meta.get("player") or p
             }
     # If no one is playing
     return {"status": "stopped"}

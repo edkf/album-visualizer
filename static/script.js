@@ -1,32 +1,3 @@
-// Global variables for smooth progress animation
-let currentPosition = 0;
-let currentLength = 0;
-let lastUpdateTime = 0;
-let progressAnimationId = null;
-
-// Smooth progress bar animation
-function animateProgress() {
-  if (currentLength > 0) {
-    const now = Date.now();
-    const timeDiff = (now - lastUpdateTime) / 1000; // seconds
-    
-    // Update position based on elapsed time
-    currentPosition += timeDiff;
-    lastUpdateTime = now;
-    
-    const progress = (currentPosition / currentLength) * 100;
-    const progressBar = document.getElementById("progress-bar");
-    
-    if (progressBar) {
-      progressBar.style.width = `${Math.min(progress, 100)}%`;
-    }
-    
-    // Continue animation if still playing
-    if (progress < 100) {
-      progressAnimationId = requestAnimationFrame(animateProgress);
-    }
-  }
-}
 
 async function refresh() {
   try {
@@ -43,28 +14,6 @@ async function refresh() {
       artist.textContent = data.artist || "";
       album.textContent = data.album ? `Album: ${data.album}` : "";
       
-      // Update progress bar with smooth animation
-      if (data.position !== undefined && data.length !== undefined && data.length > 0) {
-        // Stop current animation
-        if (progressAnimationId) {
-          cancelAnimationFrame(progressAnimationId);
-        }
-        
-        // Update current values
-        currentPosition = data.position;
-        currentLength = data.length;
-        lastUpdateTime = Date.now();
-        
-        // Start smooth animation
-        animateProgress();
-      } else {
-        currentPosition = 0;
-        currentLength = 0;
-        const progressBar = document.getElementById("progress-bar");
-        if (progressBar) {
-          progressBar.style.width = "0%";
-        }
-      }
       
       source.textContent = data.source ? `Source: ${data.source}` : "";
       
@@ -100,17 +49,6 @@ async function refresh() {
       cover.alt = "Album cover";
       resetToDefaultColors();
       
-      // Stop progress animation
-      if (progressAnimationId) {
-        cancelAnimationFrame(progressAnimationId);
-        progressAnimationId = null;
-      }
-      currentPosition = 0;
-      currentLength = 0;
-      const progressBar = document.getElementById("progress-bar");
-      if (progressBar) {
-        progressBar.style.width = "0%";
-      }
     }
   } catch (e) {
     console.error(e);
