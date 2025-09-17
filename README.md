@@ -1,4 +1,4 @@
-mo vc # Album Visualizer
+# Album Visualizer
 
 A real-time music visualizer that displays album artwork and track information for currently playing music. The app automatically extracts colors from album covers to create dynamic, themed backgrounds.
 
