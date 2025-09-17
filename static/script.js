@@ -1,4 +1,15 @@
 
+// Function to show/hide placeholder
+function togglePlaceholder(show) {
+  const placeholder = document.getElementById("cover-placeholder");
+  
+  if (show) {
+    placeholder.classList.remove("hidden");
+  } else {
+    placeholder.classList.add("hidden");
+  }
+}
+
 async function refresh() {
   try {
     const r = await fetch("/api/now", { cache: "no-store" });
@@ -19,6 +30,9 @@ async function refresh() {
       
       // Handle cover image - convert file:// URLs to our API endpoint
       if (data.cover) {
+        // Show loading state
+        togglePlaceholder(true);
+        
         if (data.cover.startsWith('file://')) {
           cover.src = `/api/cover?path=${encodeURIComponent(data.cover)}`;
         } else {
@@ -27,19 +41,26 @@ async function refresh() {
         
         // Extract colors from the cover image
         extractColorsFromCover(data.cover);
+        
+        // Handle successful image load
+        cover.onload = function() {
+          togglePlaceholder(false);
+        };
+        
+        // Handle image load errors
+        cover.onerror = function() {
+          console.log("Failed to load cover image:", cover.src);
+          cover.src = "";
+          togglePlaceholder(true);
+          resetToDefaultColors();
+        };
       } else {
         cover.src = "";
+        togglePlaceholder(true);
         // Reset to default colors when no cover
         resetToDefaultColors();
       }
       cover.alt = data.title ? `Cover for ${data.title}` : "Album cover";
-      
-      // Handle image load errors
-      cover.onerror = function() {
-        console.log("Failed to load cover image:", cover.src);
-        cover.src = "";
-        resetToDefaultColors();
-      };
     } else {
       title.textContent = "Nothing playing";
       artist.textContent = "";
@@ -47,8 +68,8 @@ async function refresh() {
       source.textContent = "";
       cover.src = "";
       cover.alt = "Album cover";
+      togglePlaceholder(true);
       resetToDefaultColors();
-      
     }
   } catch (e) {
     console.error(e);

@@ -1,6 +1,6 @@
 /* CSS Variables for dynamic colors */
 :root {
-  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-gradient: #000;
   --text-color: #ffffff;
   --text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -52,11 +52,42 @@ body {
   margin: 0;
 }
 
-/* Image - 90% of viewport height with aspect ratio */
-.cover {
+/* Cover container - maintains consistent structure */
+.cover-container {
+  position: relative;
   height: 80vh;
-  width: auto;
+  width: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image - maintains aspect ratio */
+.cover {
+  height: 100%;
+  width: 100%;
   object-fit: cover;
+}
+
+/* Placeholder for when no cover or loading */
+.cover-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #222;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.cover-placeholder.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Smooth transitions for color changes */
