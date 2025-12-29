@@ -107,7 +107,7 @@ class ColorExtractor {
 
   // Create CSS gradient from colors with darkening
   createGradient(colors, direction = 'to bottom right', darkenPercent = 30) {
-    if (colors.length === 0) return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    if (colors.length === 0) return '#000000';
     
     // Darken all colors for better contrast
     const darkenedColors = colors.map(color => this.darkenColor(color, darkenPercent));
