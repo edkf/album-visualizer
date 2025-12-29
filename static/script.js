@@ -1,222 +1,58 @@
+/**
+ * Main Application Entry Point
+ * 
+ * Orchestrates the application by coordinating state management,
+ * UI updates, and theme management. Polls the API periodically
+ * and updates the UI only when the track changes.
+ */
 
-// Cache to track current track and avoid unnecessary requests
-let currentTrackKey = null;
-let lastFetchTime = 0;
-let currentCoverUrl = null;
-let currentTitle = null;
-let currentArtist = null;
-let currentAlbum = null;
-let currentSource = null;
-let currentStatus = null;
-let lastExtractedCoverUrl = null; // Cache for color extraction
-const FETCH_INTERVAL = 3000; // Check every 3 seconds, but only fetch if changed
+// Initialize managers
+const stateCache = new StateCache();
+const uiUpdater = new UIUpdater(stateCache);
+const themeManager = new ThemeManager();
 
-// Function to show/hide placeholder
-function togglePlaceholder(show) {
-  const placeholder = document.getElementById("cover-placeholder");
-  
-  if (show) {
-    placeholder.classList.remove("hidden");
-  } else {
-    placeholder.classList.add("hidden");
-  }
-}
-
-// Create a unique key for a track
-function getTrackKey(data) {
-  if (data.status !== "playing") {
-    return "stopped";
-  }
-  return `${data.title || ""}|${data.artist || ""}|${data.album || ""}`.toLowerCase();
-}
-
+/**
+ * Refresh function - fetches current track info and updates UI
+ * Only makes API calls when necessary (track changed or time interval passed)
+ * Only updates UI when track actually changes
+ */
 async function refresh() {
   try {
-    const now = Date.now();
-    const timeSinceLastFetch = now - lastFetchTime;
+    // Check if we should fetch (enough time passed or first load)
+    if (!stateCache.shouldFetch()) {
+      return;
+    }
+
+    // Fetch current track information from API
+    const r = await fetch("/api/now", { cache: "no-store" });
+    const data = await r.json();
     
-    // Only fetch if enough time has passed (to avoid too frequent requests)
-    // or if we don't have a track key yet (first load)
-    if (timeSinceLastFetch >= FETCH_INTERVAL || currentTrackKey === null) {
-      const r = await fetch("/api/now", { cache: "no-store" });
-      const data = await r.json();
-      lastFetchTime = now;
+    // Update fetch timestamp
+    stateCache.updateFetchTime();
+    
+    // Generate track key to detect changes
+    const newTrackKey = stateCache.getTrackKey(data);
+    
+    // Only update UI if track has changed
+    if (stateCache.hasTrackChanged(newTrackKey)) {
+      stateCache.updateTrackKey(newTrackKey);
       
-      const newTrackKey = getTrackKey(data);
-      
-      // Only update UI if track changed
-      if (newTrackKey !== currentTrackKey) {
-        currentTrackKey = newTrackKey;
-        updateUI(data);
-      }
+      // Update UI with new track data
+      uiUpdater.updateUI(
+        data,
+        // Callback to extract colors when cover changes
+        (coverUrl) => themeManager.extractColorsFromCover(coverUrl),
+        // Callback to reset colors when stopped
+        () => themeManager.resetToDefaultColors()
+      );
     }
   } catch (e) {
     console.error(e);
   }
 }
 
-function updateUI(data) {
-  const title = document.getElementById("title");
-  const artist = document.getElementById("artist");
-  const album = document.getElementById("album");
-  const cover = document.getElementById("cover");
-  const source = document.getElementById("source");
-
-  const newTitle = data.title || "Unknown title";
-  const newArtist = data.artist || "";
-  const newAlbum = data.album ? `Album: ${data.album}` : "";
-  const newSource = data.source ? `Source: ${data.source}` : "";
-  const newStatus = data.status;
-
-  if (data.status === "playing") {
-      // Only update text if it changed
-      if (currentTitle !== newTitle) {
-        title.textContent = newTitle;
-        currentTitle = newTitle;
-      }
-      if (currentArtist !== newArtist) {
-        artist.textContent = newArtist;
-        currentArtist = newArtist;
-      }
-      if (currentAlbum !== newAlbum) {
-        album.textContent = newAlbum;
-        currentAlbum = newAlbum;
-      }
-      if (currentSource !== newSource) {
-        source.textContent = newSource;
-        currentSource = newSource;
-      }
-      
-      // Handle cover image - now using data URIs directly
-      if (data.cover) {
-        // Only update image if it changed
-        if (currentCoverUrl !== data.cover) {
-          currentCoverUrl = data.cover;
-          
-          // Show loading state
-          togglePlaceholder(true);
-          
-          // Set cover directly (data URI or URL from Last.fm)
-          cover.src = data.cover;
-          // Ensure high quality rendering
-          cover.loading = 'eager';
-          cover.decoding = 'async';
-          
-          // Extract colors from the cover image (only once per image)
-          if (lastExtractedCoverUrl !== data.cover) {
-            lastExtractedCoverUrl = data.cover;
-            extractColorsFromCover(data.cover);
-          }
-          
-          // Handle successful image load (only set once)
-          cover.onload = function() {
-            togglePlaceholder(false);
-          };
-          
-          // Handle image load errors
-          cover.onerror = function() {
-            console.log("Failed to load cover image:", cover.src);
-            cover.src = "";
-            currentCoverUrl = null;
-            togglePlaceholder(true);
-            resetToDefaultColors();
-          };
-        }
-      } else {
-        // Only clear if we had a cover before
-        if (currentCoverUrl) {
-          cover.src = "";
-          currentCoverUrl = null;
-          lastExtractedCoverUrl = null;
-          togglePlaceholder(true);
-          // Reset to default colors when no cover
-          resetToDefaultColors();
-        }
-      }
-      if (cover.alt !== `Cover for ${newTitle}`) {
-        cover.alt = `Cover for ${newTitle}`;
-      }
-    } else {
-      // Only update if status changed
-      if (currentStatus !== "stopped") {
-        if (currentTitle !== "Nothing playing") {
-          title.textContent = "Nothing playing";
-          currentTitle = "Nothing playing";
-        }
-        if (currentArtist !== "") {
-          artist.textContent = "";
-          currentArtist = "";
-        }
-        if (currentAlbum !== "") {
-          album.textContent = "";
-          currentAlbum = "";
-        }
-        if (currentSource !== "") {
-          source.textContent = "";
-          currentSource = "";
-        }
-        
-        // Only clear cover if we had one
-        if (currentCoverUrl) {
-          cover.src = "";
-          currentCoverUrl = null;
-          lastExtractedCoverUrl = null;
-          togglePlaceholder(true);
-          resetToDefaultColors();
-        }
-        if (cover.alt !== "Album cover") {
-          cover.alt = "Album cover";
-        }
-        currentStatus = "stopped";
-      }
-    }
-}
-
-// Extract colors from cover image and apply to background
-async function extractColorsFromCover(coverUrl) {
-  try {
-    // coverUrl is now either a data URI or a URL from Last.fm
-    const colors = await window.colorExtractor.extractColors(coverUrl, 3);
-    if (colors && colors.length > 0) {
-      applyColorsToBackground(colors);
-    }
-  } catch (error) {
-    console.log('Failed to extract colors:', error);
-    resetToDefaultColors();
-  }
-}
-
-// Configuration for background darkening (adjust this value to change darkness level)
-const BACKGROUND_DARKEN_PERCENT = 40; // 40% darker for better contrast
-
-// Apply extracted colors to background
-function applyColorsToBackground(colors) {
-  // Use only the dominant color, darkened for better contrast
-  const dominantColor = colors[0];
-  const darkenedColor = window.colorExtractor.darkenColor(dominantColor, BACKGROUND_DARKEN_PERCENT);
-  const solidColor = darkenedColor.hex;
-  
-  // Use the original dominant color for text contrast calculation
-  const textColor = window.colorExtractor.getAccessibleTextColor(dominantColor);
-  
-  // Update CSS variables with solid color instead of gradient
-  document.documentElement.style.setProperty('--bg-gradient', solidColor);
-  document.documentElement.style.setProperty('--text-color', textColor);
-  
-  // Adjust text shadow based on text color
-  const textShadow = textColor === '#000000' 
-    ? '0 2px 4px rgba(255, 255, 255, 0.3)' 
-    : '0 2px 4px rgba(0, 0, 0, 0.3)';
-  document.documentElement.style.setProperty('--text-shadow', textShadow);
-}
-
-// Reset to default colors
-function resetToDefaultColors() {
-  document.documentElement.style.setProperty('--bg-gradient', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)');
-  document.documentElement.style.setProperty('--text-color', '#ffffff');
-  document.documentElement.style.setProperty('--text-shadow', '0 2px 4px rgba(0, 0, 0, 0.3)');
-}
-
+// Initialize: fetch immediately on page load
 refresh();
-// Check every 2 seconds, but only fetch from API every 3 seconds (or when track changes)
+
+// Poll API every 2 seconds (but only fetch every 3 seconds due to FETCH_INTERVAL)
 setInterval(refresh, 2000);

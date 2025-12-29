@@ -20,11 +20,14 @@ A real-time music visualizer that displays album artwork and track information f
    npm install
    ```
 
-3. **Set up Last.fm API (optional):**
-   - Get a free API key from [Last.fm API](https://www.last.fm/api/account/create)
+3. **Set up cover art fallback (optional):**
+   - **Last.fm API** (default, requires API key)
+     - Get a free API key from [Last.fm API](https://www.last.fm/api/account/create)
+   - **iTunes API** (fallback, enabled by default, no API key needed)
    - Create a `.env` file in the project root:
      ```
      LASTFM_API_KEY=your_api_key_here
+     USE_ITUNES=true
      PORT=5000
      ```
 
@@ -47,10 +50,12 @@ A real-time music visualizer that displays album artwork and track information f
 Create a `.env` file in the project root:
 ```
 LASTFM_API_KEY=your_api_key_here
+USE_ITUNES=true
 PORT=5000
 ```
 
-- `LASTFM_API_KEY` - Last.fm API key for cover art fallback (optional)
+- `LASTFM_API_KEY` - Last.fm API key for cover art (recommended, tried first if configured)
+- `USE_ITUNES` - Enable iTunes API as fallback (default: true, no API key needed)
 - `PORT` - Server port (default: 5000)
 
 ## Troubleshooting
