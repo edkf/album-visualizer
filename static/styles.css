@@ -57,16 +57,28 @@ body {
   position: relative;
   height: 80vh;
   width: 80vh;
+  max-width: 90vw;
+  max-height: 90vw;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Image - maintains aspect ratio */
+/* Image - maintains aspect ratio with high quality */
 .cover {
   height: 100%;
   width: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  /* High quality image rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: bicubic;
+  /* Prevent blur on scaling */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  /* Smooth scaling */
+  image-rendering: auto;
 }
 
 /* Placeholder for when no cover or loading */

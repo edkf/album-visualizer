@@ -1,0 +1,25 @@
+{
+  "name": "album-visualizer",
+  "version": "1.0.0",
+  "description": "A real-time music visualizer that displays album artwork and track information for currently playing music on macOS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "music",
+    "visualizer",
+    "album",
+    "artwork",
+    "macos"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2"
+  }
+}
+
