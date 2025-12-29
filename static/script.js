@@ -2,6 +2,13 @@
 // Cache to track current track and avoid unnecessary requests
 let currentTrackKey = null;
 let lastFetchTime = 0;
+let currentCoverUrl = null;
+let currentTitle = null;
+let currentArtist = null;
+let currentAlbum = null;
+let currentSource = null;
+let currentStatus = null;
+let lastExtractedCoverUrl = null; // Cache for color extraction
 const FETCH_INTERVAL = 3000; // Check every 3 seconds, but only fetch if changed
 
 // Function to show/hide placeholder
@@ -55,62 +62,113 @@ function updateUI(data) {
   const cover = document.getElementById("cover");
   const source = document.getElementById("source");
 
+  const newTitle = data.title || "Unknown title";
+  const newArtist = data.artist || "";
+  const newAlbum = data.album ? `Album: ${data.album}` : "";
+  const newSource = data.source ? `Source: ${data.source}` : "";
+  const newStatus = data.status;
+
   if (data.status === "playing") {
-      title.textContent = data.title || "Unknown title";
-      artist.textContent = data.artist || "";
-      album.textContent = data.album ? `Album: ${data.album}` : "";
-      
-      
-      source.textContent = data.source ? `Source: ${data.source}` : "";
+      // Only update text if it changed
+      if (currentTitle !== newTitle) {
+        title.textContent = newTitle;
+        currentTitle = newTitle;
+      }
+      if (currentArtist !== newArtist) {
+        artist.textContent = newArtist;
+        currentArtist = newArtist;
+      }
+      if (currentAlbum !== newAlbum) {
+        album.textContent = newAlbum;
+        currentAlbum = newAlbum;
+      }
+      if (currentSource !== newSource) {
+        source.textContent = newSource;
+        currentSource = newSource;
+      }
       
       // Handle cover image - now using data URIs directly
       if (data.cover) {
-        // Show loading state
-        togglePlaceholder(true);
-        
-        // Set cover directly (data URI or URL from Last.fm)
-        // Clear src first to force reload if same image
-        if (cover.src === data.cover) {
-          cover.src = '';
-          // Force reflow
-          cover.offsetHeight;
+        // Only update image if it changed
+        if (currentCoverUrl !== data.cover) {
+          currentCoverUrl = data.cover;
+          
+          // Show loading state
+          togglePlaceholder(true);
+          
+          // Set cover directly (data URI or URL from Last.fm)
+          cover.src = data.cover;
+          // Ensure high quality rendering
+          cover.loading = 'eager';
+          cover.decoding = 'async';
+          
+          // Extract colors from the cover image (only once per image)
+          if (lastExtractedCoverUrl !== data.cover) {
+            lastExtractedCoverUrl = data.cover;
+            extractColorsFromCover(data.cover);
+          }
+          
+          // Handle successful image load (only set once)
+          cover.onload = function() {
+            togglePlaceholder(false);
+          };
+          
+          // Handle image load errors
+          cover.onerror = function() {
+            console.log("Failed to load cover image:", cover.src);
+            cover.src = "";
+            currentCoverUrl = null;
+            togglePlaceholder(true);
+            resetToDefaultColors();
+          };
         }
-        cover.src = data.cover;
-        // Ensure high quality rendering
-        cover.loading = 'eager';
-        cover.decoding = 'async';
-        
-        // Extract colors from the cover image
-        extractColorsFromCover(data.cover);
-        
-        // Handle successful image load
-        cover.onload = function() {
-          togglePlaceholder(false);
-        };
-        
-        // Handle image load errors
-        cover.onerror = function() {
-          console.log("Failed to load cover image:", cover.src);
+      } else {
+        // Only clear if we had a cover before
+        if (currentCoverUrl) {
           cover.src = "";
+          currentCoverUrl = null;
+          lastExtractedCoverUrl = null;
+          togglePlaceholder(true);
+          // Reset to default colors when no cover
+          resetToDefaultColors();
+        }
+      }
+      if (cover.alt !== `Cover for ${newTitle}`) {
+        cover.alt = `Cover for ${newTitle}`;
+      }
+    } else {
+      // Only update if status changed
+      if (currentStatus !== "stopped") {
+        if (currentTitle !== "Nothing playing") {
+          title.textContent = "Nothing playing";
+          currentTitle = "Nothing playing";
+        }
+        if (currentArtist !== "") {
+          artist.textContent = "";
+          currentArtist = "";
+        }
+        if (currentAlbum !== "") {
+          album.textContent = "";
+          currentAlbum = "";
+        }
+        if (currentSource !== "") {
+          source.textContent = "";
+          currentSource = "";
+        }
+        
+        // Only clear cover if we had one
+        if (currentCoverUrl) {
+          cover.src = "";
+          currentCoverUrl = null;
+          lastExtractedCoverUrl = null;
           togglePlaceholder(true);
           resetToDefaultColors();
-        };
-      } else {
-        cover.src = "";
-        togglePlaceholder(true);
-        // Reset to default colors when no cover
-        resetToDefaultColors();
+        }
+        if (cover.alt !== "Album cover") {
+          cover.alt = "Album cover";
+        }
+        currentStatus = "stopped";
       }
-      cover.alt = data.title ? `Cover for ${data.title}` : "Album cover";
-    } else {
-      title.textContent = "Nothing playing";
-      artist.textContent = "";
-      album.textContent = "";
-      source.textContent = "";
-      cover.src = "";
-      cover.alt = "Album cover";
-      togglePlaceholder(true);
-      resetToDefaultColors();
     }
 }
 
