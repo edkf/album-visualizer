@@ -35,17 +35,38 @@ A real-time music visualizer that displays album artwork and track information f
    ```bash
    brew install media-control
    ```
+   
+   Verify it's working:
+   ```bash
+   media-control get
+   ```
 
-3. **Install Node.js dependencies:**
+3. **Install Node.js (if not already installed):**
+   Make sure you have Node.js 16+ installed:
+   ```bash
+   node --version
+   ```
+   
+   If not, install via Homebrew:
+   ```bash
+   brew install node
+   ```
+
+4. **Install Node.js dependencies:**
    ```bash
    npm install
    ```
 
-4. **Set up Last.fm API (optional, for cover art fallback):**
+5. **Set up Last.fm API (optional, for cover art fallback):**
    - Get a free API key from [Last.fm API](https://www.last.fm/api/account/create)
+     - Visit: https://www.last.fm/api/account/create
+     - Create a free account if you don't have one
+     - Create a new application
+     - Copy the API Key
    - Create a `.env` file in the project root:
      ```bash
      LASTFM_API_KEY=your_api_key_here
+     PORT=5000
      ```
 
 ## Usage
@@ -77,8 +98,7 @@ A real-time music visualizer that displays album artwork and track information f
 ## API Endpoints
 
 - `GET /` - Main application interface
-- `GET /api/now` - Current playing track information
-- `GET /api/cover?path=<file_path>` - Serves cover art files
+- `GET /api/now` - Current playing track information (returns data URI for artwork or Last.fm URL)
 
 ## Configuration
 
@@ -95,14 +115,29 @@ PORT=5000
 
 ## Troubleshooting
 
+### media-control not found
+```bash
+# Check if it's installed
+which media-control
+
+# If not, install it again
+brew install media-control
+```
+
 ### No music detected
 - Ensure `media-control` is installed: `brew install media-control`
 - Check if `media-control get` returns information when music is playing
+- Make sure music is playing
+- Test manually: `media-control get`
+- Verify that your player is supported by media-control
 - Try restarting your music player
 
 ### Cover art not showing
 - Verify Last.fm API key is set correctly in `.env` file
+- Check if the `.env` file is configured correctly
+- Test the Last.fm API manually
 - Check browser console for errors
+- Check server logs for errors
 - Ensure media-control is returning artwork data
 
 ### Colors not extracting
@@ -121,7 +156,6 @@ album-visualizer/
 │   ├── script.js       # Frontend logic
 │   ├── styles.css      # Styling
 │   └── color-utils.js  # Color extraction utilities
-├── temp/               # Temporary cover art files (auto-generated)
 └── README.md          # This file
 ```
 
