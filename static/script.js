@@ -1,4 +1,9 @@
 
+// Cache to track current track and avoid unnecessary requests
+let currentTrackKey = null;
+let lastFetchTime = 0;
+const FETCH_INTERVAL = 3000; // Check every 3 seconds, but only fetch if changed
+
 // Function to show/hide placeholder
 function togglePlaceholder(show) {
   const placeholder = document.getElementById("cover-placeholder");
@@ -10,17 +15,47 @@ function togglePlaceholder(show) {
   }
 }
 
+// Create a unique key for a track
+function getTrackKey(data) {
+  if (data.status !== "playing") {
+    return "stopped";
+  }
+  return `${data.title || ""}|${data.artist || ""}|${data.album || ""}`.toLowerCase();
+}
+
 async function refresh() {
   try {
-    const r = await fetch("/api/now", { cache: "no-store" });
-    const data = await r.json();
-    const title = document.getElementById("title");
-    const artist = document.getElementById("artist");
-    const album = document.getElementById("album");
-    const cover = document.getElementById("cover");
-    const source = document.getElementById("source");
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTime;
+    
+    // Only fetch if enough time has passed (to avoid too frequent requests)
+    // or if we don't have a track key yet (first load)
+    if (timeSinceLastFetch >= FETCH_INTERVAL || currentTrackKey === null) {
+      const r = await fetch("/api/now", { cache: "no-store" });
+      const data = await r.json();
+      lastFetchTime = now;
+      
+      const newTrackKey = getTrackKey(data);
+      
+      // Only update UI if track changed
+      if (newTrackKey !== currentTrackKey) {
+        currentTrackKey = newTrackKey;
+        updateUI(data);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-    if (data.status === "playing") {
+function updateUI(data) {
+  const title = document.getElementById("title");
+  const artist = document.getElementById("artist");
+  const album = document.getElementById("album");
+  const cover = document.getElementById("cover");
+  const source = document.getElementById("source");
+
+  if (data.status === "playing") {
       title.textContent = data.title || "Unknown title";
       artist.textContent = data.artist || "";
       album.textContent = data.album ? `Album: ${data.album}` : "";
@@ -28,16 +63,22 @@ async function refresh() {
       
       source.textContent = data.source ? `Source: ${data.source}` : "";
       
-      // Handle cover image - convert file:// URLs to our API endpoint
+      // Handle cover image - now using data URIs directly
       if (data.cover) {
         // Show loading state
         togglePlaceholder(true);
         
-        if (data.cover.startsWith('file://')) {
-          cover.src = `/api/cover?path=${encodeURIComponent(data.cover)}`;
-        } else {
-          cover.src = data.cover;
+        // Set cover directly (data URI or URL from Last.fm)
+        // Clear src first to force reload if same image
+        if (cover.src === data.cover) {
+          cover.src = '';
+          // Force reflow
+          cover.offsetHeight;
         }
+        cover.src = data.cover;
+        // Ensure high quality rendering
+        cover.loading = 'eager';
+        cover.decoding = 'async';
         
         // Extract colors from the cover image
         extractColorsFromCover(data.cover);
@@ -71,21 +112,13 @@ async function refresh() {
       togglePlaceholder(true);
       resetToDefaultColors();
     }
-  } catch (e) {
-    console.error(e);
-  }
 }
 
 // Extract colors from cover image and apply to background
 async function extractColorsFromCover(coverUrl) {
   try {
-    // Use the actual cover URL for color extraction
-    let imageUrl = coverUrl;
-    if (coverUrl.startsWith('file://')) {
-      imageUrl = `/api/cover?path=${encodeURIComponent(coverUrl)}`;
-    }
-    
-    const colors = await window.colorExtractor.extractColors(imageUrl, 3);
+    // coverUrl is now either a data URI or a URL from Last.fm
+    const colors = await window.colorExtractor.extractColors(coverUrl, 3);
     if (colors && colors.length > 0) {
       applyColorsToBackground(colors);
     }
@@ -127,4 +160,5 @@ function resetToDefaultColors() {
 }
 
 refresh();
+// Check every 2 seconds, but only fetch from API every 3 seconds (or when track changes)
 setInterval(refresh, 2000);
