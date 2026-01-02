@@ -55,11 +55,12 @@ body {
 /* Cover container - maintains consistent structure */
 .cover-container {
   position: relative;
-  height: 70vh;
-  width: 70vh;
+  height: 80vh;
+  width: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform: translateX(-10px);
 }
 
 /* Image - maintains aspect ratio with high quality */
